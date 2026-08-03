@@ -7,7 +7,7 @@ AgentWake is a setup guide, not a hosted service — but the agent it builds is 
 If you find a security issue in the guide (for example, a step that could leak credentials or an unsafe default), please report it **privately**:
 
 - Use GitHub's **"Report a vulnerability"** button under the repository's **Security** tab, or
-- Email **benjibanwart@gmail.com**
+- Email **benjibanwart@proton.me**
 
 Please **do not** open a public issue for security problems. You'll get a response as soon as possible.
 
