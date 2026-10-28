@@ -1,1 +1,9 @@
 .DS_Store
+# Never commit secrets. The Discord bot token lives in ~/.claude/channels/discord/.env,
+# outside this repo, on purpose. Keep it in your password manager.
+.env
+*.env
+*.token
+secrets/
+.obsidian/workspace*.json
+.DS_Store
