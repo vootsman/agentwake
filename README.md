@@ -1,71 +1,105 @@
-# AgentWake 🌅
+# AgentWake: Linux / VM edition
 
-**Turn Claude Code into a persistent AI agent — with a name, a brain that learns over time, and Discord access — running on your Mac.**
+A Linux port of [AgentWake](https://github.com/BenjaminBanwart/agentwake) (MIT) by Benjamin Banwart. It builds a persistent Claude Code agent with a name, a markdown "brain", and Discord access, running on **Ubuntu Server 24.04** instead of a Mac.
 
-One file. You feed it to Claude Code, and it walks you through building your own always-on AI agent, step by step, in about 15 minutes.
+Compared with the original:
 
-> Claude Code gives you the wires. AgentWake gives you the brain.
-
-<!-- Add a short demo GIF here — it's the single highest-leverage thing on this page.
-![AgentWake demo](docs/demo.gif) -->
-
-## What it is
-
-AgentWake is a single guided Markdown file (**[`agentwake.md`](agentwake.md)**). You open Claude Code, hand it the file, and it becomes an interactive setup wizard that builds you a **persistent AI agent** — one that:
-
-- **Has an identity** — a name, values, a way of thinking, and a voice that stay consistent across every conversation.
-- **Has a brain that learns** — a structured knowledge base (learnings, corrections, a journal, project notes, a profile of you) it reads on startup and updates as it goes, so it gets more useful over time instead of forgetting everything.
-- **Lives on Discord** — talk to it from your phone, anywhere. It runs in a `tmux` session on your Mac: always on, always reachable.
-- **Improves itself** — it records what it learns and where it was wrong, then applies that next time.
-
-It's the open-source version of the setup behind **Enzo**, the persistent agent I run day to day.
-
-## Quickstart
-
-**Requirements:** macOS 13+, a **Claude Pro or Max** subscription, and ~15 minutes.
-
-1. Download **[`agentwake.md`](agentwake.md)** (or clone this repo).
-2. In a terminal, start Claude Code:
-   ```sh
-   claude
-   ```
-3. Point it at the guide:
-   ```
-   Read agentwake.md and walk me through it.
-   ```
-4. Follow along. It installs the prerequisites (Homebrew, Bun, tmux, GitHub CLI, the Claude Code CLI), helps you create a Discord bot, builds your agent's brain, writes its `CLAUDE.md`, and launches it in a persistent session.
-
-You'll be chatting with your agent on Discord by the end.
-
-## What gets built (the "brain")
-
-The setup creates a structured brain your agent reads on every boot and updates in real time:
-
-| File | What it holds |
+| Original (Mac) | This edition |
 |---|---|
-| `Index` | Map of the brain + how the agent uses it |
-| `Identity` | Who the agent is — values, voice, boundaries |
-| `How I Think` | Reasoning approach + known blind spots |
-| `Capabilities` | What it can/can't do, its tools, how it grows |
-| `Learnings` / `Corrections` | What it's learned; where it was wrong |
-| `Conversation Log` / `Journal` | Memory across sessions |
-| `Active Projects` / `Project Ideas` | What it's working on |
-| `<You>` | A profile of you — preferences, context |
+| Homebrew installs | `bootstrap.sh` (apt + official installers) |
+| `caffeinate` + manual tmux launch | systemd service: starts on boot, restarts if it crashes |
+| Brain in `~/Documents` | Brain in `~/agent/brain`, backed up hourly to a private GitHub repo |
+| Turn off auto-updates | Not needed: security updates are fine because the service restarts the agent after a reboot |
+| One machine | **Portable**: rebuild on TrueNAS, a cloud server, or a new PC from the backup repo |
 
-…plus a permanent `CLAUDE.md` that ties it all together and a `tmux` launch setup so it stays running.
+## What's in here
 
-## ⚠️ A note on safety
+```
+agentwake-linux.md        The setup guide Claude Code follows (setup + restore)
+bootstrap.sh              Installs tmux, git, gh, Bun, Claude Code; enables always-on services
+scripts/init-agent.sh     Creates the brain, CLAUDE.md and agent.conf from templates
+scripts/install-services.sh  Installs the systemd service + hourly backup timer
+scripts/backup.sh         Commit and push ~/agent (run by the timer)
+systemd/                  Service and timer templates
+templates/                Brain files and CLAUDE.md template
+```
 
-This gives your agent **full access to the machine** — files, terminal, browser, network — without approving each action. That autonomy is the point, but it means mistakes can have real consequences. Run it on a **dedicated machine** (not your primary workstation), keep backups, and only pair **trusted** people on Discord.
+Once set up, `~/agent` also contains `agent.conf`, `CLAUDE.md`, and `brain/`, and that whole folder *is* your agent.
+
+---
+
+> **Looking for the original Mac version?** It's unchanged in [`agentwake.md`](agentwake.md), and its README is [`README-mac.md`](README-mac.md).
+
+## 1. Create the VM
+
+**Windows 11 Pro → follow [docs/hyper-v-ubuntu-vm.md](docs/hyper-v-ubuntu-vm.md)**, a step-by-step guide to an always-on Ubuntu Server VM on Hyper-V that starts with Windows.
+
+Any other hypervisor (VMware, VirtualBox, Proxmox, TrueNAS) works too: **Ubuntu Server 24.04 LTS**, 2 vCPU, 4 GB RAM, 40 GB disk, bridged network, with **OpenSSH server** ticked during install. Take a snapshot once it's installed.
+
+## 2. Get the files onto the VM
+
+SSH in from Windows Terminal (`ssh YOURUSER@VM-IP`), then:
+
+```bash
+git clone https://github.com/vootsman/agentwake.git ~/agent
+bash ~/agent/bootstrap.sh
+source ~/.bashrc
+```
+
+(This repo is public and holds no personal data. During setup the agent's own copy is disconnected from it and backed up to a separate **private** repo instead.)
+
+## 3. Run the guided setup
+
+```bash
+cd ~/agent
+claude
+```
+
+Sign in with your Claude Pro/Max account when asked. On a headless VM it shows a link; open it on your phone or PC and paste the code back. Then say:
+
+> Read agentwake-linux.md and walk me through it.
+
+About 15 minutes later you have a named agent on Discord, with its brain backed up to a private GitHub repo.
+
+## Day-to-day
+
+| | |
+|---|---|
+| See/talk to it in the terminal | `tmux attach -t <session>` (detach: Ctrl+B, D) |
+| Restart / stop | `systemctl --user restart agent` / `stop agent` |
+| Logs | `journalctl --user -u agent` |
+| Back up now | `~/agent/scripts/backup.sh` |
+| Update Claude Code | Updates itself; restart the agent to pick up a new version |
+
+---
+
+## Moving your agent (TrueNAS, cloud, new PC)
+
+The VM disk doesn't have to move. Your agent is the private repo plus the Discord bot token in your password manager.
+
+1. **New host:** create an Ubuntu Server 24.04 VM.
+   - *TrueNAS SCALE:* Virtualization / VMs → add VM → Ubuntu Server ISO. (The menus differ between TrueNAS releases; check the docs for yours.)
+   - *Cloud:* any small Ubuntu 24.04 server, about 2 vCPU / 4 GB. No inbound ports are needed except SSH, since Discord connections are outbound.
+2. **Old host:** `~/agent/scripts/backup.sh`, then `systemctl --user stop agent && systemctl --user disable agent`.
+3. **New host:**
+   ```bash
+   sudo apt-get update && sudo apt-get install -y gh git
+   gh auth login
+   gh repo clone YOUR-GITHUB-NAME/YOUR-AGENT-REPO ~/agent
+   bash ~/agent/bootstrap.sh && source ~/.bashrc
+   cd ~/agent && claude
+   ```
+   Say *"Read agentwake-linux.md"*. It detects the existing `agent.conf`, runs **Restore Mode**, asks for the bot token, and walks you through re-pairing.
+
+Run only one copy at a time: two machines on the same bot token will both reply.
+
+## Safety notes
+
+- The agent runs with `--dangerously-skip-permissions`, so it can do anything your VM user can. The VM boundary is what protects the rest of your network and files. Don't mount your NAS shares or home folders into it unless you mean to.
+- Keep patient or other sensitive data off the VM. The template `CLAUDE.md` tells the agent not to store protected health information, but treat that as a guardrail, not a guarantee.
+- The bot token is never committed (see `.gitignore`). It lives only in `~/.claude/channels/discord/.env` and your password manager.
+- Keep the backup repo **private**. Your brain files will gradually contain personal context.
 
 ## License
 
-MIT — see [LICENSE](LICENSE). Use it, fork it, build on it.
-
-## About
-
-Built by **Benji Banwart**. I build AI agents — from personal setups like this one to production systems running real businesses. AgentWake is the open-source version of the setup I run myself.
-
-→ [benjibanwart.dev](https://benjibanwart.dev) · [@benjibanwart](https://x.com/benjibanwart)
-
-If it's useful to you, a ⭐ helps others find it. Ideas or improvements? Open an issue or PR.
+MIT. Original AgentWake © 2026 Benjamin Banwart; Linux adaptation built on it under the same license.

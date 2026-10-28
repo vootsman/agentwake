@@ -1,0 +1,7 @@
+[Unit]
+Description=Back up @AGENT_NAME@'s brain to git
+
+[Service]
+Type=oneshot
+Environment=PATH=%h/.local/bin:/usr/local/bin:/usr/bin:/bin
+ExecStart=@REPO@/scripts/backup.sh

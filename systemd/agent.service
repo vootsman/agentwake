@@ -1,0 +1,16 @@
+[Unit]
+Description=@AGENT_NAME@ (AgentWake agent in tmux)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=forking
+Environment=PATH=%h/.local/bin:%h/.bun/bin:/usr/local/bin:/usr/bin:/bin
+WorkingDirectory=@REPO@
+ExecStart=/usr/bin/tmux new-session -d -s @SESSION@ -c @REPO@ "claude --dangerously-skip-permissions --channels plugin:discord@claude-plugins-official"
+ExecStop=/usr/bin/tmux kill-session -t @SESSION@
+Restart=always
+RestartSec=15
+
+[Install]
+WantedBy=default.target
