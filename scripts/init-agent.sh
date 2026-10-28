@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Creates agent.conf, the brain (from templates) and CLAUDE.md for a new agent.
-# Usage: scripts/init-agent.sh "AgentName" "YourName"
+# Usage: scripts/init-agent.sh "AgentName" "YourName" [discord|telegram|both]
 set -euo pipefail
 
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
@@ -9,6 +9,12 @@ USER_NAME="${2:?Usage: init-agent.sh \"AgentName\" \"YourName\"}"
 SESSION="$(echo "$AGENT_NAME" | tr '[:upper:]' '[:lower:]' | tr ' ' '-' | tr -cd 'a-z0-9-')"
 TODAY="$(date +%F)"
 BRAIN="$REPO/brain"
+case "${3:-discord}" in
+  discord)  CHANNELS="discord";          CHAT_APPS="Discord" ;;
+  telegram) CHANNELS="telegram";         CHAT_APPS="Telegram" ;;
+  both)     CHANNELS="discord telegram"; CHAT_APPS="Discord and Telegram" ;;
+  *) echo "Third argument must be discord, telegram or both." >&2; exit 1 ;;
+esac
 
 if [ -e "$BRAIN" ]; then
   echo "A brain already exists at $BRAIN — refusing to overwrite it." >&2
@@ -20,13 +26,15 @@ AGENT_NAME="$AGENT_NAME"
 USER_NAME="$USER_NAME"
 SESSION="$SESSION"
 CREATED="$TODAY"
+CHANNELS="$CHANNELS"
+CHAT_APPS="$CHAT_APPS"
 EOF
 
-python3 -I - "$REPO/templates" "$REPO" "$AGENT_NAME" "$USER_NAME" "$TODAY" <<'PY'
+python3 -I - "$REPO/templates" "$REPO" "$AGENT_NAME" "$USER_NAME" "$TODAY" "$CHAT_APPS" <<'PY'
 import os, re, sys
-templates, repo, agent, user, today = sys.argv[1:6]
+templates, repo, agent, user, today, chat_apps = sys.argv[1:7]
 subs = {"{AgentName}": agent, "{UserName}": user, "{Date}": today,
-        "{BrainPath}": "~/agent/brain"}
+        "{BrainPath}": "~/agent/brain", "{ChatApps}": chat_apps}
 def fill(s):
     for k, v in subs.items():
         s = s.replace(k, v)
@@ -56,4 +64,4 @@ if [ -e "$HOME/.claude/CLAUDE.md" ] && [ ! -L "$HOME/.claude/CLAUDE.md" ]; then
 fi
 ln -sfn "$REPO/CLAUDE.md" "$HOME/.claude/CLAUDE.md"
 
-echo "Agent '$AGENT_NAME' initialised for $USER_NAME. tmux session name: $SESSION"
+echo "Agent '$AGENT_NAME' initialised for $USER_NAME ($CHAT_APPS). tmux session name: $SESSION"

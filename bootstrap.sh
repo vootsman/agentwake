@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # AgentWake-Linux bootstrap: installs everything the agent needs on a fresh
-# Ubuntu Server 24.04 machine. Safe to run more than once.
+# Ubuntu Server 26.04 LTS machine. Safe to run more than once.
 set -euo pipefail
 
 say() { printf '\n\033[1m==> %s\033[0m\n' "$*"; }
@@ -17,7 +17,7 @@ say "Installing system packages (tmux, git, curl, unzip, GitHub CLI, python3)"
 sudo apt-get update -y
 sudo apt-get install -y tmux git curl unzip ca-certificates gh python3
 
-say "Installing Bun (runtime for the Discord plugin)"
+say "Installing Bun (runtime for the Discord/Telegram plugins)"
 if ! command -v bun >/dev/null 2>&1 && [ ! -x "$HOME/.bun/bin/bun" ]; then
   curl -fsSL https://bun.sh/install | bash
 else

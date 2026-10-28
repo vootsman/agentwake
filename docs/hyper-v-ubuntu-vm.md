@@ -26,7 +26,7 @@ Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V -All
 
 ## 3. Download Ubuntu Server
 
-Download **Ubuntu Server 24.04 LTS** from <https://ubuntu.com/download/server>. Get the `.iso` (~2.5 GB) and note where it saves.
+Download **Ubuntu Server 26.04 LTS** from <https://ubuntu.com/download/server>. Get the `.iso` (~2.5 GB) and note where it saves.
 
 ## 4. Create an External network switch
 
@@ -47,7 +47,7 @@ Your PC's network drops for a few seconds while the switch is created. That's no
 Open **PowerShell as Administrator** and paste, editing the ISO path on the first line:
 
 ```powershell
-$Iso  = "$HOME\Downloads\ubuntu-24.04.3-live-server-amd64.iso"   # <- your ISO's real filename
+$Iso  = "$HOME\Downloads\ubuntu-26.04.1-live-server-amd64.iso"   # <- your ISO's real filename
 $Name = "agent-vm"
 $Dir  = "C:\Hyper-V\$Name"
 New-Item -ItemType Directory -Force -Path $Dir | Out-Null
