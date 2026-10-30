@@ -28,14 +28,30 @@ Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V -All
 
 Download **Ubuntu Server 26.04 LTS** from <https://ubuntu.com/download/server>. Get the `.iso` (~2.5 GB) and note where it saves.
 
-## 4. Create an External network switch
+## 4. Choose the VM's network
 
-This puts the VM on your home network like any other device, so it has a stable address you can SSH to. Hyper-V's "Default Switch" changes the VM's address on every reboot.
+Which option depends on how your PC connects to your home network.
+
+### PC on Wi-Fi → use the built-in **Default Switch** (nothing to create)
+
+The VM gets a private address behind your PC, with full internet access (all the agent needs: Discord and Telegram connect outward). Its address changes on reboot, but you can always reach it by name from your PC:
+
+```powershell
+ssh matt@agent-vm.mshome.net
+```
+
+Only this PC can SSH into the VM, which is a security plus.
+
+> ⚠️ **Don't put an External switch on Wi-Fi.** Wi-Fi only accepts traffic from your PC's own hardware address, so Hyper-V disguises the VM as your PC. The router then gives the VM **the same IP as your PC**, causing an address conflict, failed SSH, and flaky networking on the PC. If you already did this: set the VM's network adapter to **Default Switch**, reboot the VM, then remove the External switch in **Virtual Switch Manager**.
+
+### PC on Ethernet → create an **External** switch
+
+This puts the VM on your home network like any other device, reachable from any device in the house.
 
 1. Open **Hyper-V Manager** (Start menu)
 2. Right pane → **Virtual Switch Manager…**
 3. **New virtual network switch** → **External** → **Create Virtual Switch**
-4. Name: `External`. Under "External network", pick your **Ethernet** adapter (Wi-Fi works but is less reliable)
+4. Name: `External`. Under "External network", pick your **Ethernet** adapter (not Wi-Fi)
 5. Leave **"Allow management operating system to share this network adapter"** ticked → **OK**
 
 Your PC's network drops for a few seconds while the switch is created. That's normal.
@@ -49,11 +65,12 @@ Open **PowerShell as Administrator** and paste, editing the ISO path on the firs
 ```powershell
 $Iso  = "$HOME\Downloads\ubuntu-26.04.1-live-server-amd64.iso"   # <- your ISO's real filename
 $Name = "agent-vm"
+$Switch = "Default Switch"   # PC on Wi-Fi. Use "External" if your PC is on Ethernet (step 4)
 $Dir  = "C:\Hyper-V\$Name"
 New-Item -ItemType Directory -Force -Path $Dir | Out-Null
 
 New-VM -Name $Name -Generation 2 -MemoryStartupBytes 4GB `
-  -NewVHDPath "$Dir\$Name.vhdx" -NewVHDSizeBytes 40GB -SwitchName "External" -Path "C:\Hyper-V"
+  -NewVHDPath "$Dir\$Name.vhdx" -NewVHDSizeBytes 40GB -SwitchName $Switch -Path "C:\Hyper-V"
 Set-VMProcessor -VMName $Name -Count 2
 Set-VMMemory    -VMName $Name -DynamicMemoryEnabled $false
 Set-VMFirmware  -VMName $Name -SecureBootTemplate MicrosoftUEFICertificateAuthority
@@ -73,7 +90,7 @@ vmconnect.exe localhost $Name
 2. Name: `agent-vm`
 3. **Generation 2**
 4. Memory: **4096 MB**, untick "Use Dynamic Memory"
-5. Networking: **External**
+5. Networking: **Default Switch** (PC on Wi-Fi) or **External** (PC on Ethernet), per step 4
 6. Create a virtual hard disk: **40 GB**
 7. "Install an operating system from a bootable image file" → browse to the Ubuntu ISO → **Finish**
 8. **Before starting it**, right-click the VM → **Settings**:
@@ -91,7 +108,7 @@ In the VM window, accept the defaults except where noted:
 |---|---|
 | Language / keyboard | English (US) or yours |
 | Type of install | **Ubuntu Server** (not minimized) |
-| Network | Leave DHCP. **Write down the IPv4 address it shows** (e.g. 192.168.1.57) |
+| Network | Leave it automatic (DHCP) |
 | Proxy / mirror | Leave blank / default |
 | Storage | **Use an entire disk** (defaults are fine) → Done → Continue |
 | Profile | Your name, server name `agent-vm`, a username (e.g. `matt`) and a strong password |
@@ -106,7 +123,8 @@ When it says **Installation complete**, choose **Reboot now**. If it asks you to
 Log in at the VM console, or (easier, since copy/paste works) from **Windows Terminal / PowerShell** on your PC:
 
 ```powershell
-ssh matt@192.168.1.57      # your username and the VM's IP
+ssh matt@agent-vm.mshome.net   # Default Switch: use your username
+ssh matt@192.168.1.57          # External switch: use the VM's IP (run `hostname -I` in the VM console)
 ```
 
 Then on the VM:
@@ -124,9 +142,9 @@ sudo lvextend -r -l +100%FREE /dev/ubuntu-vg/ubuntu-lv
 
 Then `sudo reboot`.
 
-## 8. Give the VM a fixed address (recommended)
+## 8. Give the VM a fixed address (External switch only)
 
-In your **router's admin page**, find the DHCP client list and create a **DHCP reservation** for `agent-vm` so it always gets the same IP. That's simpler and safer than configuring a static IP inside Ubuntu.
+Skip this if you use the Default Switch; `agent-vm.mshome.net` already finds it. With an External switch, in your **router's admin page**, find the DHCP client list and create a **DHCP reservation** for `agent-vm` so it always gets the same IP. That's simpler and safer than configuring a static IP inside Ubuntu.
 
 ## 9. Take a checkpoint
 

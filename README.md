@@ -39,9 +39,10 @@ Any other hypervisor (VMware, VirtualBox, Proxmox, TrueNAS) works too: **Ubuntu 
 
 ## 2. Get the files onto the VM
 
-SSH in from Windows Terminal (`ssh YOURUSER@VM-IP`), then:
+SSH in from Windows Terminal (`ssh YOURUSER@agent-vm.mshome.net` with Hyper-V's Default Switch, or `ssh YOURUSER@VM-IP`), then:
 
 ```bash
+sudo apt update && sudo apt install -y git
 git clone https://github.com/vootsman/agentwake.git ~/agent
 bash ~/agent/bootstrap.sh
 source ~/.bashrc
